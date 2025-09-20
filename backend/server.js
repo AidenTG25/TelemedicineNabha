@@ -21,7 +21,7 @@ const allowedOrigins = [
   'http://localhost:3000', // your local frontend
   'https://20c00476e7b2.ngrok-free.app.ngrok-free.app' // replace with your actual current ngrok URL
 ];
-mongoose.connect('mongodb+srv://admin:galaxy123@cluster0.5hdcrhe.mongodb.net/pharmacy_db?retryWrites=true&w=majority', {
+mongoose.connect(process.env.MONGODB_URI, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
 })
