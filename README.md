@@ -50,22 +50,43 @@ npm install
 
 #### Frontend (.env)
 \`\`\`
-REACT_APP_FIREBASE_API_KEY=your_firebase_api_key
-REACT_APP_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-REACT_APP_FIREBASE_PROJECT_ID=your_project_id
-REACT_APP_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
-REACT_APP_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-REACT_APP_FIREBASE_APP_ID=your_app_id
-REACT_APP_API_URL=http://localhost:5000
+# Firebase Configuration
+REACT_APP_FIREBASE_API_KEY=your-firebase-api-key
+REACT_APP_FIREBASE_AUTH_DOMAIN=your-firebase-auth-domain
+REACT_APP_FIREBASE_PROJECT_ID=your-firebase-project-id
+REACT_APP_FIREBASE_STORAGE_BUCKET=your-firebase-storage-bucket
+REACT_APP_FIREBASE_MESSAGING_SENDER_ID=your-firebase-messaging-sender-id
+REACT_APP_FIREBASE_APP_ID=your-firebase-app-id
+
+# API Configuration
+REACT_APP_API_URL=http://localhost:3000
+REACT_APP_SOCKET_URL=your-socket-url
+
 \`\`\`
 
 #### Backend (.env)
 \`\`\`
+# Server Configuration
 PORT=5000
-FIREBASE_PROJECT_ID=your_project_id
-FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYOUR_PRIVATE_KEY\n-----END PRIVATE KEY-----\n"
-FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxx@your-project.iam.gserviceaccount.com
-HUGGINGFACE_API_KEY=your_huggingface_api_key
+NODE_ENV=development
+
+# Firebase Admin Configuration
+FIREBASE_PROJECT_ID=your-firebase-project-id
+FIREBASE_PRIVATE_KEY_ID=your-firebase-private-key-id
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\nYOUR_PRIVATE_KEY_CONTENT\n-----END PRIVATE KEY-----\n"
+FIREBASE_CLIENT_EMAIL=your-firebase-client-email
+FIREBASE_CLIENT_ID=your-firebase-client-id
+FIREBASE_STORAGE_BUCKET=your-firebase-storage-bucket
+
+# AI Configuration
+HUGGINGFACE_API_KEY=your-huggingface-api-key
+
+# Database Configuration
+MONGODB_URI=your-mongodb-uri
+
+# JWT Configuration
+JWT_SECRET=your-jwt-secret
+
 \`\`\`
 
 ## Running the Application
