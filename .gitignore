@@ -1,0 +1,55 @@
+# Root-level ignores
+.DS_Store
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# Ignore node_modules in both frontend and backend
+
+node_modules/
+
+
+# Ignore environment config files for both frontend and backend
+.env
+frontend/.env
+backend/.env
+
+# Production and build outputs for React frontend
+frontend/build/
+frontend/dist/
+
+# Cache and temp
+frontend/.pnp
+frontend/.pnp.js
+frontend/.eslintcache
+frontend/.parcel-cache
+frontend/.cache
+backend/.cache
+
+# Test & coverage
+frontend/coverage/
+backend/coverage/
+*.lcov
+
+# Misc IDE/editor folders
+.idea/
+.vscode/
+
+# OS system files
+Thumbs.db
+ehthumbs.db
+
+# Uploaded files & runtime data
+backend/uploads/
+pids
+*.pid
+*.seed
+*.pid.lock
+
+
+# Backup files
+*~
+*.bak
+
