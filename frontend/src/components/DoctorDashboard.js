@@ -2498,6 +2498,19 @@ import {
   Toolbar,
   Fade,
   Paper,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  Chip,
+  CircularProgress,
 } from '@mui/material';
 import {
   VideoCall,
@@ -2506,6 +2519,11 @@ import {
   ExitToApp,
   LocalHospital,
   Groups,
+  Add,
+  Delete,
+  Save,
+  Cancel,
+  Assignment,
 } from '@mui/icons-material';
 import { useTranslation } from 'react-i18next';
 import { signOut } from 'firebase/auth';
@@ -2514,6 +2532,7 @@ import VideoCallComponent from './VideoCall';
 
 // Use environment variable for backend URL
 const BACKEND_URL = process.env.REACT_APP_SOCKET_URL ;
+const API_BASE = 'http://localhost:5000/api';
 
 const DoctorDashboard = () => {
   const { t } = useTranslation();
@@ -2527,6 +2546,24 @@ const DoctorDashboard = () => {
     patient: null,
     roomName: null,
   });
+  const [prescriptionDialog, setPrescriptionDialog] = useState(false);
+  const [selectedPatient, setSelectedPatient] = useState(null);
+  const [prescriptionData, setPrescriptionData] = useState({
+    diagnosis: '',
+    notes: '',
+    medications: []
+  });
+  const [currentMedication, setCurrentMedication] = useState({
+    name: '',
+    dosage: '',
+    frequency: '',
+    duration: '',
+    instructions: ''
+  });
+  const [prescriptionLoading, setPrescriptionLoading] = useState(false);
+  const [prescriptionError, setPrescriptionError] = useState('');
+  const [prescriptionSuccess, setPrescriptionSuccess] = useState('');
+
 
   useEffect(() => {
     console.log('🏥 DoctorDashboard: Setting up Socket.IO connection');
@@ -2627,7 +2664,131 @@ const DoctorDashboard = () => {
 
   const handlePrescription = (patient) => {
     console.log('💊 Open prescription for:', patient.name);
+    setSelectedPatient(patient);
+    setPrescriptionDialog(true);
+    setPrescriptionError('');
+    setPrescriptionSuccess('');
+    // Reset form
+    setPrescriptionData({
+      diagnosis: '',
+      notes: '',
+      medications: []
+    });
+    setCurrentMedication({
+      name: '',
+      dosage: '',
+      frequency: '',
+      duration: '',
+      instructions: ''
+    });
   };
+
+  const handleClosePrescription = () => {
+    setPrescriptionDialog(false);
+    setSelectedPatient(null);
+    setPrescriptionError('');
+    setPrescriptionSuccess('');
+  };
+
+  const handleAddMedication = () => {
+    if (!currentMedication.name || !currentMedication.dosage || !currentMedication.frequency) {
+      setPrescriptionError('Please fill in medication name, dosage, and frequency');
+      return;
+    }
+
+    const newMedication = {
+      ...currentMedication,
+      id: Date.now().toString()
+    };
+
+    setPrescriptionData(prev => ({
+      ...prev,
+      medications: [...prev.medications, newMedication]
+    }));
+
+    // Reset current medication form
+    setCurrentMedication({
+      name: '',
+      dosage: '',
+      frequency: '',
+      duration: '',
+      instructions: ''
+    });
+    setPrescriptionError('');
+  };
+
+  const handleRemoveMedication = (medicationId) => {
+    setPrescriptionData(prev => ({
+      ...prev,
+      medications: prev.medications.filter(med => med.id !== medicationId)
+    }));
+  };
+
+  const handleSavePrescription = async () => {
+    if (!prescriptionData.diagnosis || prescriptionData.medications.length === 0) {
+      setPrescriptionError('Please provide diagnosis and at least one medication');
+      return;
+    }
+
+    setPrescriptionLoading(true);
+    setPrescriptionError('');
+
+    try {
+      const token = await auth.currentUser?.getIdToken();
+      
+      const prescriptionPayload = {
+        patientId: selectedPatient.id.toString(),
+        patientName: selectedPatient.name,
+        patientEmail: selectedPatient.email,
+        doctorName: currentUser?.displayName || currentUser?.email || 'Dr. Current User',
+        doctorId: currentUser?.uid,
+        diagnosis: prescriptionData.diagnosis.trim(),
+        notes: prescriptionData.notes.trim(),
+        medications: prescriptionData.medications.map(med => ({
+          name: med.name.trim(),
+          dosage: med.dosage.trim(),
+          frequency: med.frequency.trim(),
+          duration: med.duration.trim(),
+          instructions: med.instructions.trim()
+        })),
+        status: 'active',
+        prescribedDate: new Date().toISOString()
+      };
+
+      console.log('📋 Saving prescription:', prescriptionPayload);
+
+      const response = await fetch(`${API_BASE}/prescriptions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token || 'mock-token'}`
+        },
+        body: JSON.stringify(prescriptionPayload)
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log('✅ Prescription saved successfully:', result);
+
+      setPrescriptionSuccess('Prescription saved successfully to MongoDB!');
+      
+      // Auto close dialog after 2 seconds
+      setTimeout(() => {
+        handleClosePrescription();
+      }, 2000);
+
+    } catch (error) {
+      console.error('❌ Error saving prescription:', error);
+      setPrescriptionError(`Failed to save prescription: ${error.message}`);
+    } finally {
+      setPrescriptionLoading(false);
+    }
+  };
+
 
   const handleLogout = async () => {
     try {
@@ -2883,6 +3044,329 @@ const DoctorDashboard = () => {
           </Grid>
         </Grid>
       </Box>
+      <Dialog
+        open={prescriptionDialog}
+        onClose={handleClosePrescription}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            bgcolor: '#1e293b',
+            border: '1px solid rgba(77, 222, 128, 0.2)',
+          }
+        }}
+      >
+        <DialogTitle sx={{
+          color: '#f1f5f9',
+          background: 'linear-gradient(135deg, rgba(77, 222, 128, 0.1), rgba(34, 211, 238, 0.1))',
+          borderBottom: '1px solid rgba(77, 222, 128, 0.2)',
+          display: 'flex',
+          alignItems: 'center',
+        }}>
+          <Assignment sx={{ mr: 2, color: '#4ade80' }} />
+          Create Prescription for {selectedPatient?.name}
+        </DialogTitle>
+
+        <DialogContent sx={{ p: 3 }}>
+          {prescriptionError && (
+            <Alert severity="error" sx={{ mb: 2 }}>
+              {prescriptionError}
+            </Alert>
+          )}
+
+          {prescriptionSuccess && (
+            <Alert severity="success" sx={{ mb: 2 }}>
+              {prescriptionSuccess}
+            </Alert>
+          )}
+
+          <Grid container spacing={3}>
+            {/* Patient Info */}
+            <Grid item xs={12}>
+              <Paper sx={{
+                p: 2,
+                bgcolor: 'rgba(77, 222, 128, 0.05)',
+                border: '1px solid rgba(77, 222, 128, 0.2)',
+              }}>
+                <Typography variant="subtitle1" sx={{ color: '#4ade80', fontWeight: 600, mb: 1 }}>
+                  Patient Information
+                </Typography>
+                <Typography sx={{ color: '#f1f5f9' }}>
+                  <strong>Name:</strong> {selectedPatient?.name}
+                </Typography>
+                <Typography sx={{ color: '#f1f5f9' }}>
+                  <strong>Email:</strong> {selectedPatient?.email}
+                </Typography>
+                <Typography sx={{ color: '#f1f5f9' }}>
+                  <strong>Date:</strong> {new Date().toLocaleDateString()}
+                </Typography>
+              </Paper>
+            </Grid>
+
+            {/* Diagnosis */}
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Diagnosis"
+                multiline
+                rows={3}
+                value={prescriptionData.diagnosis}
+                onChange={(e) => setPrescriptionData(prev => ({ ...prev, diagnosis: e.target.value }))}
+                placeholder="Enter patient diagnosis..."
+                required
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    color: '#f1f5f9',
+                    '& fieldset': { borderColor: 'rgba(77, 222, 128, 0.3)' },
+                    '&:hover fieldset': { borderColor: 'rgba(77, 222, 128, 0.5)' },
+                    '&.Mui-focused fieldset': { borderColor: '#4ade80' },
+                  },
+                  '& .MuiInputLabel-root': { color: '#94a3b8' },
+                }}
+              />
+            </Grid>
+
+            {/* Add Medication Section */}
+            <Grid item xs={12}>
+              <Typography variant="h6" sx={{ color: '#f1f5f9', mb: 2, display: 'flex', alignItems: 'center' }}>
+                <Medication sx={{ mr: 1, color: '#4ade80' }} />
+                Add Medications
+              </Typography>
+
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Medication Name"
+                    value={currentMedication.name}
+                    onChange={(e) => setCurrentMedication(prev => ({ ...prev, name: e.target.value }))}
+                    placeholder="e.g., Amoxicillin"
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        color: '#f1f5f9',
+                        '& fieldset': { borderColor: 'rgba(77, 222, 128, 0.3)' },
+                        '&:hover fieldset': { borderColor: 'rgba(77, 222, 128, 0.5)' },
+                        '&.Mui-focused fieldset': { borderColor: '#4ade80' },
+                      },
+                      '& .MuiInputLabel-root': { color: '#94a3b8' },
+                    }}
+                  />
+                </Grid>
+
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    label="Dosage"
+                    value={currentMedication.dosage}
+                    onChange={(e) => setCurrentMedication(prev => ({ ...prev, dosage: e.target.value }))}
+                    placeholder="e.g., 500mg"
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        color: '#f1f5f9',
+                        '& fieldset': { borderColor: 'rgba(77, 222, 128, 0.3)' },
+                        '&:hover fieldset': { borderColor: 'rgba(77, 222, 128, 0.5)' },
+                        '&.Mui-focused fieldset': { borderColor: '#4ade80' },
+                      },
+                      '& .MuiInputLabel-root': { color: '#94a3b8' },
+                    }}
+                  />
+                </Grid>
+
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Frequency"
+                    value={currentMedication.frequency}
+                    onChange={(e) => setCurrentMedication(prev => ({ ...prev, frequency: e.target.value }))}
+                    placeholder="e.g., Twice daily"
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        color: '#f1f5f9',
+                        '& fieldset': { borderColor: 'rgba(77, 222, 128, 0.3)' },
+                        '&:hover fieldset': { borderColor: 'rgba(77, 222, 128, 0.5)' },
+                        '&.Mui-focused fieldset': { borderColor: '#4ade80' },
+                      },
+                      '& .MuiInputLabel-root': { color: '#94a3b8' },
+                    }}
+                  />
+                </Grid>
+
+                <Grid item xs={12} md={4}>
+                  <TextField
+                    fullWidth
+                    label="Duration"
+                    value={currentMedication.duration}
+                    onChange={(e) => setCurrentMedication(prev => ({ ...prev, duration: e.target.value }))}
+                    placeholder="e.g., 7 days"
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        color: '#f1f5f9',
+                        '& fieldset': { borderColor: 'rgba(77, 222, 128, 0.3)' },
+                        '&:hover fieldset': { borderColor: 'rgba(77, 222, 128, 0.5)' },
+                        '&.Mui-focused fieldset': { borderColor: '#4ade80' },
+                      },
+                      '& .MuiInputLabel-root': { color: '#94a3b8' },
+                    }}
+                  />
+                </Grid>
+
+                <Grid item xs={12} md={4}>
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    startIcon={<Add />}
+                    onClick={handleAddMedication}
+                    sx={{
+                      height: '56px',
+                      background: 'linear-gradient(45deg, #4ade80, #22c55e)',
+                      '&:hover': { background: 'linear-gradient(45deg, #22c55e, #16a34a)' },
+                    }}
+                  >
+                    Add Medication
+                  </Button>
+                </Grid>
+
+                <Grid item xs={12}>
+                  <TextField
+                    fullWidth
+                    label="Special Instructions (Optional)"
+                    value={currentMedication.instructions}
+                    onChange={(e) => setCurrentMedication(prev => ({ ...prev, instructions: e.target.value }))}
+                    placeholder="e.g., Take with food, Avoid alcohol"
+                    multiline
+                    rows={2}
+                    sx={{
+                      '& .MuiOutlinedInput-root': {
+                        color: '#f1f5f9',
+                        '& fieldset': { borderColor: 'rgba(77, 222, 128, 0.3)' },
+                        '&:hover fieldset': { borderColor: 'rgba(77, 222, 128, 0.5)' },
+                        '&.Mui-focused fieldset': { borderColor: '#4ade80' },
+                      },
+                      '& .MuiInputLabel-root': { color: '#94a3b8' },
+                    }}
+                  />
+                </Grid>
+              </Grid>
+            </Grid>
+
+            {/* Medications List */}
+            {prescriptionData.medications.length > 0 && (
+              <Grid item xs={12}>
+                <Typography variant="h6" sx={{ color: '#f1f5f9', mb: 2 }}>
+                  Prescribed Medications ({prescriptionData.medications.length})
+                </Typography>
+
+                <TableContainer component={Paper} sx={{
+                  bgcolor: 'rgba(30, 41, 59, 0.5)',
+                  border: '1px solid rgba(77, 222, 128, 0.2)',
+                }}>
+                  <Table>
+                    <TableHead>
+                      <TableRow sx={{ '& th': { color: '#4ade80', fontWeight: 600 } }}>
+                        <TableCell>Medication</TableCell>
+                        <TableCell>Dosage</TableCell>
+                        <TableCell>Frequency</TableCell>
+                        <TableCell>Duration</TableCell>
+                        <TableCell>Instructions</TableCell>
+                        <TableCell>Actions</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {prescriptionData.medications.map((med) => (
+                        <TableRow key={med.id} sx={{ '& td': { color: '#f1f5f9' } }}>
+                          <TableCell>{med.name}</TableCell>
+                          <TableCell>{med.dosage}</TableCell>
+                          <TableCell>
+                            <Chip
+                              label={med.frequency}
+                              size="small"
+                              sx={{ bgcolor: 'rgba(34, 211, 238, 0.2)', color: '#22d3ee' }}
+                            />
+                          </TableCell>
+                          <TableCell>
+                            <Chip
+                              label={med.duration}
+                              size="small"
+                              sx={{ bgcolor: 'rgba(139, 92, 246, 0.2)', color: '#8b5cf6' }}
+                            />
+                          </TableCell>
+                          <TableCell>{med.instructions || '-'}</TableCell>
+                          <TableCell>
+                            <IconButton
+                              size="small"
+                              onClick={() => handleRemoveMedication(med.id)}
+                              sx={{ color: '#ef4444', '&:hover': { bgcolor: 'rgba(239, 68, 68, 0.1)' } }}
+                            >
+                              <Delete />
+                            </IconButton>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Grid>
+            )}
+
+            {/* Notes */}
+            <Grid item xs={12}>
+              <TextField
+                fullWidth
+                label="Additional Notes (Optional)"
+                multiline
+                rows={3}
+                value={prescriptionData.notes}
+                onChange={(e) => setPrescriptionData(prev => ({ ...prev, notes: e.target.value }))}
+                placeholder="Additional instructions or notes for the patient..."
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    color: '#f1f5f9',
+                    '& fieldset': { borderColor: 'rgba(77, 222, 128, 0.3)' },
+                    '&:hover fieldset': { borderColor: 'rgba(77, 222, 128, 0.5)' },
+                    '&.Mui-focused fieldset': { borderColor: '#4ade80' },
+                  },
+                  '& .MuiInputLabel-root': { color: '#94a3b8' },
+                }}
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+
+        <DialogActions sx={{
+          p: 3,
+          borderTop: '1px solid rgba(77, 222, 128, 0.2)',
+          gap: 2,
+        }}>
+          <Button
+            onClick={handleClosePrescription}
+            startIcon={<Cancel />}
+            sx={{
+              color: '#94a3b8',
+              borderColor: 'rgba(148, 163, 184, 0.3)',
+              '&:hover': {
+                borderColor: '#94a3b8',
+                bgcolor: 'rgba(148, 163, 184, 0.1)',
+              },
+            }}
+          >
+            Cancel
+          </Button>
+
+          <Button
+            onClick={handleSavePrescription}
+            disabled={prescriptionLoading || !prescriptionData.diagnosis || prescriptionData.medications.length === 0}
+            startIcon={prescriptionLoading ? <CircularProgress size={20} /> : <Save />}
+            variant="contained"
+            sx={{
+              background: 'linear-gradient(45deg, #4ade80, #22c55e)',
+              '&:hover': { background: 'linear-gradient(45deg, #22c55e, #16a34a)' },
+              '&:disabled': { bgcolor: 'rgba(77, 222, 128, 0.3)' },
+            }}
+          >
+            {prescriptionLoading ? 'Saving...' : 'Save Prescription'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
