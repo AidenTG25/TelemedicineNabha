@@ -1559,6 +1559,7 @@ import {
   Fab,
 } from '@mui/material';
 import {
+  LocalPharmacy,
   AccountCircle,
   Logout,
   Psychology,
@@ -1578,6 +1579,7 @@ import UploadRecords from './UploadRecords';
 import PrescriptionList from './PrescriptionList';
 import VideoCallComponent from './VideoCall';
 import LoadingScreen from './LoadingScreen';
+import Medicine from './Medicine.js'
 
 const PatientDashboard = () => {
   const { t } = useTranslation();
@@ -1746,6 +1748,13 @@ const PatientDashboard = () => {
       component: <PrescriptionList />,
       color: '#8b5cf6',
       description: 'View your prescriptions',
+    },
+    {
+      label: 'Medicines',
+      icon: <LocalPharmacy />,
+      component: <Medicine />,
+      color: '#22d3ee',
+      description: 'Check available medicines',
     },
     {
       label: t('videoCall') || 'Video Call',
