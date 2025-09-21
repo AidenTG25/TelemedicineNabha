@@ -412,8 +412,16 @@ const Login = () => {
                                 borderColor: '#4ade80',
                               },
                             }}
+                            MenuProps={{
+                              PaperProps: {
+                                sx: {
+                                  backgroundColor: 'rgba(0, 0, 0, 1)', // dropdown menu background
+                                  color: '#f1f5f9'
+                                }
+                              }
+                            }}
                           >
-                            <MenuItem value="patient" sx={{ color: '#f1f5f9' }}>
+                            <MenuItem value="patient" sx={{ color: '#f1f5f9', }}>
                               <Box sx={{ display: 'flex', alignItems: 'center' }}>
                                 {getRoleIcon('patient')}
                                 <Typography sx={{ ml: 1 }}>{t('patient')}</Typography>
@@ -526,7 +534,7 @@ const Login = () => {
                         },
                       }}
                     >
-                      {isLogin ? t('needAccount') : t('haveAccount')}
+                      {isLogin ? t('Register') : t('Login')}
                     </Button>
                   </Box>
                 </CardContent>
